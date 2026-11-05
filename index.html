@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Nexus Messenger</title>
+<style>
+:root{--bg:#0e1621;--panel:#17212b;--line:#242f3d;--text:#fff;--muted:#7d8b99;--accent:#2b5278;--blue:#4fa8ff;--danger:#e53e3e;--own:#2b5278;--other:#182533}
+:root[data-theme=light]{--bg:#f2f4f7;--panel:#fff;--line:#e2e6eb;--text:#111;--muted:#667;--accent:#3a7bd5;--own:#d7e8ff;--other:#fff;--blue:#2563eb}
+*{box-sizing:border-box;margin:0;font-family:Arial,Helvetica,sans-serif}
+body{background:#000;height:100vh;display:flex;justify-content:center;overflow:hidden}
+#app{width:100%;max-width:420px;height:100vh;max-height:900px;background:var(--bg);color:var(--text);position:relative;display:flex;flex-direction:column;overflow:hidden}
+.view{display:none;flex:1;flex-direction:column;min-height:0}
+.view.active{display:flex}
+header{display:flex;align-items:center;gap:10px;padding:12px 14px;background:var(--panel);border-bottom:1px solid var(--line)}
+header h2{font-size:17px;flex:1;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.ghost{background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;padding:4px}
+main{flex:1;overflow-y:auto;padding:12px;min-height:0}
+input,textarea,select{width:100%;padding:12px;border-radius:10px;border:1px solid var(--line);background:var(--panel);color:var(--text);font-size:15px;margin-bottom:10px;outline:none}
+.btn{width:100%;padding:13px;border:none;border-radius:10px;background:var(--accent);color:#fff;font-weight:bold;font-size:15px;cursor:pointer;margin-bottom:8px}
+.btn.alt{background:var(--line);color:var(--text)}
+.btn.danger{background:var(--danger)}
+.small{padding:6px 10px;border:none;border-radius:8px;background:var(--accent);color:#fff;font-size:12px;cursor:pointer}
+.small.danger{background:var(--danger)}
+.row{display:flex;align-items:center;gap:12px;padding:10px;border-radius:12px;background:var(--panel);margin-bottom:8px;cursor:pointer}
+.av{width:46px;height:46px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:bold;flex-shrink:0;font-size:18px}
+.grow{flex:1;min-width:0}
+.sub{font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.badge{background:var(--blue);color:#fff;border-radius:10px;padding:2px 7px;font-size:11px;font-weight:bold}
+.msgs{display:flex;flex-direction:column;gap:6px;padding:10px;min-height:100%}
+.msg{max-width:80%;background:var(--other);padding:8px 11px;border-radius:12px;align-self:flex-start;word-break:break-word;font-size:14px;cursor:pointer}
+.msg.out{background:var(--own);align-self:flex-end}
+.msg .meta{font-size:10px;color:var(--muted);margin-top:3px;text-align:right}
+.composer{display:flex;gap:8px;padding:10px;background:var(--panel);border-top:1px solid var(--line)}
+.composer input{margin:0;border-radius:20px}
+.composer button{border:none;border-radius:20px;background:var(--accent);color:#fff;padding:0 16px;cursor:pointer;font-size:16px}
+nav{display:flex;background:var(--panel);border-top:1px solid var(--line)}
+nav button{flex:1;padding:10px 0;background:none;border:none;color:var(--muted);font-size:12px;cursor:pointer}
+nav button.on{color:var(--blue);font-weight:bold}
+.card{background:var(--panel);border-radius:14px;padding:14px;margin-bottom:12px}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.item{background:var(--panel);border-radius:12px;padding:10px 4px;text-align:center;border:1px solid var(--line);font-size:12px;cursor:pointer}
+.item .ic{font-size:34px}
+.price{color:#ecc94b;font-weight:bold;margin-top:4px}
+.tabs{display:flex;gap:6px;margin-bottom:10px}
+.tabs button{flex:1;padding:8px;border-radius:8px;border:none;background:var(--panel);color:var(--text);cursor:pointer}
+.tabs button.on{background:var(--accent);color:#fff}
+.profBg{height:110px;border-radius:14px;margin-bottom:-40px;transition:0.3s}
+.bg-blue{background:linear-gradient(135deg,#1c2733,#2b5278)}
+.bg-red{background:linear-gradient(135deg,#4a1a1a,#e53e3e)}
+.bg-green{background:linear-gradient(135deg,#1b4a1b,#38a169)}
+.bg-purple{background:linear-gradient(135deg,#2d1b4e,#8E2DE2)}
+.bg-orange{background:linear-gradient(135deg,#F7971E,#FFD200)}
+.profAv{width:84px;height:84px;border-radius:50%;background:var(--accent);color:#fff;font-size:32px;font-weight:bold;display:flex;align-items:center;justify-content:center;margin:0 auto;border:4px solid var(--bg)}
+.center{text-align:center}
+.stats{display:flex;gap:8px;justify-content:center;margin:12px 0}
+.stat{background:var(--panel);border-radius:10px;padding:8px 12px;font-size:12px;color:var(--muted)}
+.stat b{display:block;color:var(--blue);font-size:18px}
+.toast{position:absolute;top:14px;left:50%;transform:translateX(-50%);background:var(--danger);color:#fff;padding:10px 18px;border-radius:8px;font-size:14px;opacity:0;transition:.25s;pointer-events:none;z-index:999;max-width:90%;text-align:center}
+.toast.show{opacity:1}.toast.ok{background:#38a169}
+.pop{position:absolute;inset:0;background:rgba(0,0,0,.6);display:none;align-items:flex-end;z-index:500}
+.pop.on{display:flex}
+.sheet{background:var(--panel);width:100%;border-radius:16px 16px 0 0;padding:14px;display:flex;flex-direction:column;gap:8px}
+.hidden{display:none!important}
+.nft-upgraded { filter: drop-shadow(0 0 10px gold) sepia(1) saturate(5) hue-rotate(5deg); }
+</style>
+</head>
+<body>
+<div id="app">
+<div class="toast" id="toast"></div>
+
+<!-- АВТОРИЗАЦИЯ -->
+<div class="view active" id="vAuth">
+  <main style="display:flex;flex-direction:column;justify-content:center">
+    <div class="center" style="font-size:52px">🛡️</div>
+    <h2 class="center" style="margin:8px 0 20px">Nexus Messenger</h2>
+    <input id="authNick" placeholder="Ник (3–20: a-z, 0-9, _)" autocomplete="username">
+    <input id="authPass" type="password" placeholder="Пароль (минимум 6)" autocomplete="current-password">
+    <!-- Блок для админ-фразы (Показывается только для evdo) -->
+    <div id="adminSecretBox" class="hidden" style="background:#2b1d1d;border:1px solid var(--danger);padding:10px;border-radius:10px;margin-bottom:10px">
+      <div style="font-size:12px;color:#ffb3b3;margin-bottom:5px;">Введите 10 слов для админки:</div>
+      <textarea id="secretPhrase" rows="2" style="margin:0;background:#1a1212;color:#ffb3b3;border:none;"></textarea>
+    </div>
+    <div id="authError" style="color:var(--danger);font-size:13px;text-align:center;margin-bottom:10px;font-weight:bold;display:none;"></div>
+    <button class="btn" id="btnLogin">Войти</button>
+    <button class="btn alt" id="btnRegister">Регистрация</button>
+  </main>
+</div>
+
+<!-- СПИСОК ЧАТОВ -->
+<div class="view" id="vChats">
+  <header><h2>Чаты</h2><span class="sub balanceTxt" style="color:#ecc94b;font-weight:bold"></span></header>
+  <main>
+    <input id="searchInput" placeholder="Поиск пользователя по нику 🔍">
+    <div id="chatList"></div>
+  </main>
+</div>
+
+<!-- ЧАТ -->
+<div class="view" id="vChat">
+  <header>
+    <button class="ghost" id="chatBack">←</button>
+    <div class="av" id="chatAvatar" style="width:36px;height:36px;font-size:15px"></div>
+    <h2 id="chatTitle" style="cursor:pointer"></h2>
+  </header>
+  <main id="msgsWrap" style="padding:0"><div class="msgs" id="msgs"></div></main>
+  <div class="composer">
+    <input id="msgInput" placeholder="Сообщение...">
+    <button id="sendBtn">➤</button>
+  </div>
+</div>
+
+<!-- МАГАЗИН -->
+<div class="view" id="vShop">
+  <header><h2>Магазин</h2><span class="sub balanceTxt" style="color:#ecc94b;font-weight:bold"></span></header>
+  <main>
+    <div class="card center">
+      <div class="sub">Крипто-кошелек (NEX)</div>
+      <div class="nexTxt" style="font-size:30px;font-weight:bold;color:#4fa8ff;margin:6px 0">0 NEX</div>
+      <div class="sub">Coin Баланс</div>
+      <div class="balanceTxt" style="font-size:24px;font-weight:bold;color:#ecc94b;margin:6px 0">0 🪙</div>
+    </div>
+    <div class="tabs">
+      <button id="catGift" class="on">🎁 Подарки</button>
+      <button id="catNft">🖼️ NFT</button>
+    </div>
+    <div class="grid" id="shopGrid"></div>
+  </main>
+</div>
+
+<!-- ПРОФИЛЬ -->
+<div class="view" id="vProfile">
+  <header>
+    <button class="ghost" id="profBack">←</button>
+    <h2 id="profHeader">Мой профиль</h2>
+  </header>
+  <main>
+    <div class="profBg bg-blue" id="profBg"></div>
+    <div class="profAv" id="profAv"></div>
+    <div class="center" style="margin-top:10px">
+      <div style="font-size:20px;font-weight:bold" id="profNick"></div>
+      <div class="sub" id="profBio"></div>
+    </div>
+    
+    <div class="stats">
+      <div class="stat">Coin<b id="profBalance">0</b></div>
+      <div class="stat">NEX<b id="profNex">0</b></div>
+    </div>
+
+    <div class="tabs" id="profTabs">
+      <button id="tabGifts" class="on">🎁 Подарки</button>
+      <button id="tabNft">🖼️ NFT</button>
+    </div>
+    <div class="grid" id="invGrid" style="margin-bottom:20px;"></div>
+
+    <div id="profOwn">
+      <div class="card" id="profEdit">
+        <div style="font-weight:bold;margin-bottom:8px">Настройки (⚙️)</div>
+        <select id="profEditBg">
+          <option value="bg-blue">Синий фон</option><option value="bg-red">Красный фон</option>
+          <option value="bg-green">Зелёный фон</option><option value="bg-purple">Фиолетовый фон</option>
+          <option value="bg-orange">Оранжевый фон</option>
+        </select>
+        <button class="btn" id="profSave">Сохранить фон</button>
+        <button class="btn alt" id="themeBtn">🌓 Сменить тему</button>
+        <button class="btn danger" id="logoutBtn">Выйти</button>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- АДМИН-ПАНЕЛЬ -->
+<div class="view" id="vAdmin">
+  <header>
+    <h2>Админ-панель</h2>
+  </header>
+  <main>
+    <div class="card">
+      <div style="font-weight:bold;margin-bottom:8px">💰 Выдать валюту</div>
+      <input id="adminGiveUser" placeholder="Ник пользователя">
+      <input id="adminGiveAmount" type="number" placeholder="Сумма">
+      <div style="display:flex;gap:5px;">
+        <button class="btn" style="background:#38a169;margin:0;" onclick="adminAction('balance')">Coin</button>
+        <button class="btn" style="background:#4fa8ff;margin:0;" onclick="adminAction('nex')">NEX</button>
+        <button class="btn" style="background:#ecc94b;margin:0;" onclick="adminAction('usdt')">USDT</button>
+      </div>
+    </div>
+    <div class="card">
+      <div style="font-weight:bold;margin-bottom:8px">🚫 Бан / Разбан</div>
+      <input id="adminBanUser" placeholder="Ник пользователя">
+      <div style="display:flex;gap:5px;">
+        <button class="btn danger" style="margin:0;" onclick="adminAction('ban')">Забанить</button>
+        <button class="btn" style="background:#38a169;margin:0;" onclick="adminAction('unban')">Разбанить</button>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- НИЖНЯЯ НАВИГАЦИЯ -->
+<nav id="bottomNav" class="hidden">
+  <button data-go="vChats" class="on">💬 Чаты</button>
+  <button data-go="vShop">🛍️ Магазин</button>
+  <button data-go="vProfile">👤 Профиль</button>
+  <button data-go="vAdmin" id="navAdmin" class="hidden">🛠️ Админ</button>
+</nav>
+
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getDatabase, ref, push, set, get, update, onValue, onChildAdded, runTransaction } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+const firebaseConfig = { apiKey: "AIzaSyBkNR9ZrRFwB39CYlhk2CNz4jWD-WGWuD8", authDomain: "chat-d7385.firebaseapp.com", databaseURL: "https://chat-d7385-default-rtdb.europe-west1.firebasedatabase.app", projectId: "chat-d7385", storageBucket: "chat-d7385.firebasestorage.app", messagingSenderId: "421202112650", appId: "1:421202112650:web:7b53494f3d32fd02a87d73" };
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+const auth = getAuth(app);
+signInAnonymously(auth).catch(console.error);
+
+const ADMIN_NICK = "evdo";
+const ADMIN_SECRET = "evdo evdo EVDONKO Misha hi fish popa pops vino Moldova";
+const NICK_RE = /^[a-zа-яё0-9_]{3,20}$/;
+
+const GIFTS = [
+    { id: "g1", name: "Сердце", emoji: "❤️", price: 15 },
+    { id: "g2", name: "Мишка", emoji: "🧸", price: 25 },
+    { id: "g3", name: "Роза", emoji: "🌹", price: 50 },
+    { id: "g4", name: "Алмаз", emoji: "💎", price: 100 }
+];
+
+const NFTS = [
+    { id: "n1", name: "Кот", emoji: "🐱", price: 100 },
+    { id: "n2", name: "Череп", emoji: "💀", price: 200 },
+    { id: "n3", name: "Пришелец", emoji: "👽", price: 300 },
+    { id: "n4", name: "Робот", emoji: "🤖", price: 500 },
+    { id: "n5", name: "Космос", emoji: "🚀", price: 1000 }
+];
+
+const $ = id => document.getElementById(id);
+const normName = s => String(s || "").trim().toLowerCase();
+const chatKey = (a, b) => [a, b].sort().join("_"); 
+const userRef = name => ref(db, "users/" + name);
+const toArr = v => Array.isArray(v) ? v.filter(x => x != null) : Object.values(v || {});
+
+let me = null, profile = null, unsubChat = null, activeChat = null, viewingProfile = null, activeProfileTab = 'gifts', shopCat = 'gift';
+
+function toast(msg, ok = false) { 
+    const t = $("toast"); t.textContent = msg; 
+    t.className = "toast show" + (ok ? " ok" : ""); 
+    clearTimeout(t._t); 
+    t._t = setTimeout(() => t.classList.remove("show"), 2500); 
+}
+
+function show(id) { 
+    document.querySelectorAll(".view").forEach(v => v.classList.remove("active")); 
+    $(id).classList.add("active"); 
+    $("bottomNav").classList.toggle("hidden", id === "vAuth" || !me);
+    if (id === "vChats") renderChats(); 
+    if (id === "vShop") renderShop(); 
+}
+
+// Ввод ника для проверки админа
+$("authNick").addEventListener("input", () => { 
+    $("adminSecretBox").classList.toggle("hidden", normName($("authNick").value) !== ADMIN_NICK); 
+});
+
+$("btnLogin").addEventListener("click", () => login(false));
+$("btnRegister").addEventListener("click", () => register());
+
+window.addEventListener('load', () => {
+    const savedUser = localStorage.getItem('savedUser');
+    if (savedUser) {
+        try { const u = JSON.parse(savedUser); $("authNick").value = u.name; login(true); } 
+        catch(e) { localStorage.removeItem('savedUser'); }
+    }
+});
+
+async function login(isAuto = false) {
+    $("authError").style.display = "none";
+    const name = normName($("authNick").value);
+    const pass = $("authPass").value.trim();
+    
+    if (!name) return $("authError").textContent = "Введите ник!";
+
+    if (name === ADMIN_NICK && !isAuto) {
+        const secret = $("secretPhrase").value.trim();
+        if (secret !== ADMIN_SECRET) {
+            return $("authError").textContent = "Неверная секретная фраза!";
+        }
+    }
+
+    try {
+        const snap = await get(userRef(name));
+        if (!snap.exists()) {
+            if (name === ADMIN_NICK) {
+                await set(userRef(name), { balance: 9999999, nex: 10040, usdt: 10, gifts: [], nfts: [], chats: [], password: pass, profileBg: 'bg-blue', bio: "Главный админ" });
+            } else {
+                return $("authError").textContent = "Аккаунт не найден.";
+            }
+        } else {
+            const data = snap.val();
+            if (!isAuto && data.password && data.password !== pass) return $("authError").textContent = "Неверный пароль!";
+        }
+
+        me = { name, role: name === ADMIN_NICK ? "ADMIN" : "USER" };
+        
+        onValue(userRef(me.name), snap => {
+            profile = snap.val();
+            if (!profile) return;
+            if (!profile.gifts) profile.gifts = [];
+            if (!profile.nfts) profile.nfts = [];
+            if (!profile.profileBg) profile.profileBg = 'bg-blue';
+            
+            document.querySelectorAll(".balanceTxt").forEach(e => e.textContent = (profile.balance || 0) + " 🪙");
+            document.querySelectorAll(".nexTxt").forEach(e => e.textContent = (profile.nex || 0) + " NEX");
+            
+            $("navAdmin").classList.toggle("hidden", me.role !== "ADMIN");
+            
+            if($("vProfile").classList.contains('active') && !viewingProfile) renderProfile(me.name);
+        });
+
+        show("vChats");
+        toast("Успешный вход!", true);
+        localStorage.setItem('savedUser', JSON.stringify({ name: me.name }));
+    } catch (e) { $("authError").textContent = "Ошибка: " + e.message; }
+}
+
+async function register() {
+    const name = normName($("authNick").value), pass = $("authPass").value.trim();
+    if (!NICK_RE.test(name)) return toast("Ник неверный (3-20 символов)");
+    if (pass.length < 5) return toast("Пароль минимум 5 символов");
+
+    try {
+        const res = await runTransaction(userRef(name), cur => {
+            if (cur === null) {
+                return { 
+                    balance: 100, nex: 10040, usdt: 10, 
+                    gifts: [], nfts: [], chats: [], 
+                    password: pass, profileBg: 'bg-blue', bio: "Пользователь Nexus" 
+                };
+            }
+            return undefined;
+        });
+        if (!res.committed) return toast("Этот ник уже занят!");
+        
+        $("authPass").value = pass; 
+        toast("Аккаунт создан! Входим...", true);
+        login(true);
+    } catch (e) { toast("Ошибка регистрации: " + e.message); }
+}
+
+// ЧАТЫ
+async function renderChats(filter = "") {
+    const list = $("chatList");
+    list.innerHTML = "";
+    if(!profile || !profile.chats) return;
+    
+    const chats = toArr(profile.chats).sort((a, b) => (b.time || 0) - (a.time || 0));
+    if(chats.length === 0) return list.innerHTML = '<div class="sub center" style="margin-top:20px">У вас пока нет чатов.<br>Найдите друга через поиск 🔍</div>';
+    
+    chats.forEach(c => {
+        if(!c.name || (filter && !c.name.includes(filter))) return;
+        const el = document.createElement("div"); el.className = "row";
+        el.innerHTML = `<div class="av">${c.name[0].toUpperCase()}</div><div class="grow"><div style="font-weight:bold">${c.name}</div><div class="sub">Нажмите чтобы открыть</div></div>`;
+        el.onclick = () => openChat(c.name);
+        list.appendChild(el);
+    });
+}
+
+let searchTimer;
+$("searchInput").oninput = () => {
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(doSearch, 250);
+};
+
+async function doSearch() {
+    const q = normName($("searchInput").value); 
+    const list = $("chatList"); 
+    if (!q) return renderChats();
+    
+    const snap = await get(ref(db, "users"));
+    if (!snap.exists()) return;
+    
+    const users = snap.val();
+    const names = Object.keys(users).filter(n => n.includes(q));
+    list.innerHTML = "";
+    
+    if (names.length === 0) return list.innerHTML = '<div class="sub center">Не найдено</div>';
+    
+    names.forEach(n => {
+        if(n === me.name) return;
+        const el = document.createElement("div"); el.className = "row";
+        el.innerHTML = `<div class="av">${n[0].toUpperCase()}</div><div class="grow"><div style="font-weight:bold">${n}</div></div>
+        <button class="small btn-write">Написать</button>
+        <button class="small btn-prof" style="background:#ed8936;margin-left:5px;">Профиль</button>`;
+        
+        el.querySelector('.btn-write').onclick = (e) => { e.stopPropagation(); openChat(n); };
+        el.querySelector('.btn-prof').onclick = (e) => { e.stopPropagation(); openProfile(n); };
+        
+        list.appendChild(el);
+    });
+}
+
+async function openChat(target) {
+    activeChat = target; 
+    $("chatTitle").textContent = target; 
+    $("chatAvatar").textContent = target[0].toUpperCase(); 
+    $("chatTitle").onclick = () => openProfile(target);
+    $("msgs").innerHTML = "";
+    show("vChat");
+
+    if (target !== me.name) {
+        let chats = toArr(profile.chats);
+        let existing = chats.find(c => c.name === target);
+        if (!existing) {
+            chats.push({ name: target, time: Date.now() });
+            await update(userRef(me.name), { chats });
+        }
+    }
+
+    if (unsubChat) unsubChat();
+    unsubChat = onChildAdded(ref(db, "chats/" + chatKey(me.name, target)), snap => {
+        const m = snap.val(); if (!m) return;
+        const div = document.createElement("div");
+        div.className = "msg" + (m.from === me.name ? " out" : "");
+        div.innerHTML = `<div>${m.text}</div><div class="meta">${new Date(m.time).toLocaleTimeString("ru-RU", {hour:"2-digit", minute:"2-digit"})}</div>`;
+        $("msgs").appendChild(div); 
+        $("msgsWrap").scrollTop = $("msgsWrap").scrollHeight;
+    });
+}
+
+$("chatBack").onclick = () => { 
+    if (unsubChat) { unsubChat(); unsubChat = null; } 
+    activeChat = null; show("vChats"); 
+};
+
+$("sendBtn").onclick = async () => {
+    const input = $("msgInput"); const text = input.value.trim();
+    if (!text || !activeChat) return;
+    input.value = "";
+    await push(ref(db, "chats/" + chatKey(me.name, activeChat)), { from: me.name, text, time: Date.now() });
+    update(userRef(me.name), { [`chats`]: toArr(profile.chats).map(c => c.name === activeChat ? {...c, time: Date.now()} : c) });
+};
+$("msgInput").onkeydown = e => { if (e.key === "Enter") $("sendBtn").click(); };
+
+// ПРОФИЛЬ
+window.openProfile = async function(targetName) {
+    viewingProfile = targetName === me.name ? null : targetName;
+    $("profHeader").textContent = targetName === me.name ? "Мой профиль" : "Профиль " + targetName;
+    $("profOwn").style.display = targetName === me.name ? "block" : "none";
+    show("vProfile");
+    renderProfile(targetName);
+}
+
+async function renderProfile(targetName) {
+    const snap = await get(userRef(targetName));
+    if(!snap.exists()) return toast("Профиль не найден");
+    const data = snap.val();
+    
+    $("profBg").className = "profBg " + (data.profileBg || 'bg-blue');
+    $("profAv").innerHTML = targetName[0].toUpperCase();
+    $("profNick").innerHTML = "@" + targetName;
+    $("profBio").textContent = data.bio || "Нет описания";
+    $("profBalance").textContent = data.balance || 0;
+    $("profNex").textContent = data.nex || 0;
+    $("profEditBg").value = data.profileBg || 'bg-blue';
+    
+    renderInventory(data);
+}
+
+$("profSave").onclick = async () => {
+    await update(userRef(me.name), { profileBg: $("profEditBg").value });
+    $("profBg").className = "profBg " + $("profEditBg").value;
+    toast("Фон сохранен", true);
+};
+
+$("profBack").onclick = () => show("vChats");
+$("logoutBtn").onclick = () => { localStorage.removeItem('savedUser'); location.reload(); };
+
+$("tabGifts").onclick = () => { activeProfileTab = 'gifts'; $("tabGifts").classList.add('on'); $("tabNft").classList.remove('on'); renderProfile(viewingProfile || me.name); };
+$("tabNft").onclick = () => { activeProfileTab = 'nft'; $("tabNft").classList.add('on'); $("tabGifts").classList.remove('on'); renderProfile(viewingProfile || me.name); };
+
+function renderInventory(data) {
+    const grid = $("invGrid"); grid.innerHTML = "";
+    
+    if (activeProfileTab === 'gifts') {
+        const gifts = toArr(data.gifts);
+        if (gifts.length === 0) return grid.innerHTML = '<div class="sub center" style="grid-column:span 3">Подарков нет</div>';
+        gifts.forEach(g => {
+            grid.innerHTML += `<div class="item"><div class="ic">${g.emoji || '🎁'}</div><div>${g.name}</div></div>`;
+        });
+    } else {
+        const nfts = toArr(data.nfts);
+        if (nfts.length === 0) return grid.innerHTML = '<div class="sub center" style="grid-column:span 3">Нет NFT</div>';
+        nfts.forEach(nftId => {
+            let isUpg = nftId.includes('_upg');
+            let baseId = nftId.replace('_upg', '');
+            let base = NFTS.find(n => n.id === baseId) || NFTS[0];
+            grid.innerHTML += `<div class="item">
+                <div class="ic ${isUpg ? 'nft-upgraded' : ''}">${base.emoji}</div>
+                <div>${base.name} ${isUpg ? '👑' : ''}</div>
+                ${(!viewingProfile && !isUpg) ? `<button class="small" style="margin-top:5px;background:#ed8936" onclick="upgradeNft('${baseId}')">Улучшить (500)</button>` : ''}
+            </div>`;
+        });
+    }
+}
+
+window.upgradeNft = async function(baseId) {
+    if(profile.balance < 500) return toast("Нужно 500 Coin!");
+    let nfts = toArr(profile.nfts).filter(id => id !== baseId);
+    nfts.push(baseId + '_upg');
+    await update(userRef(me.name), { balance: profile.balance - 500, nfts });
+    toast("NFT улучшен! 👑", true);
+    renderProfile(me.name);
+};
+
+// МАГАЗИН
+$("catGift").onclick = () => { shopCat = 'gift'; $("catGift").classList.add('on'); $("catNft").classList.remove('on'); renderShop(); };
+$("catNft").onclick = () => { shopCat = 'nft'; $("catNft").classList.add('on'); $("catGift").classList.remove('on'); renderShop(); };
+
+function renderShop() {
+    const grid = $("shopGrid"); grid.innerHTML = "";
+    const arr = shopCat === 'gift' ? GIFTS : NFTS;
+    
+    arr.forEach(i => {
+        grid.innerHTML += `<div class="item" onclick="buyItem('${i.id}', '${shopCat}')">
+            <div class="ic">${i.emoji}</div>
+            <div>${i.name}</div>
+            <div class="price">${i.price} 🪙</div>
+        </div>`;
+    });
+}
+
+window.buyItem = async function(id, type) {
+    const arr = type === 'gift' ? GIFTS : NFTS;
+    const item = arr.find(i => i.id === id);
+    if(!item) return;
+    if(profile.balance < item.price) return toast("Недостаточно средств!");
+    
+    if(type === 'gift') {
+        let gifts = toArr(profile.gifts);
+        gifts.push({ name: item.name, emoji: item.emoji });
+        await update(userRef(me.name), { balance: profile.balance - item.price, gifts });
+    } else {
+        let nfts = toArr(profile.nfts);
+        nfts.push(item.id);
+        await update(userRef(me.name), { balance: profile.balance - item.price, nfts });
+    }
+    toast(`Куплен ${item.name}!`, true);
+};
+
+// АДМИНКА
+window.adminAction = async function(action) {
+    if(me.role !== "ADMIN") return;
+    
+    if(action === 'ban' || action === 'unban') {
+        const user = normName($("adminBanUser").value);
+        if(!user) return toast("Введите ник");
+        await update(userRef(user), { banned: action === 'ban' });
+        return toast(action === 'ban' ? "Забанен" : "Разбанен", true);
+    }
+    
+    const user = normName($("adminGiveUser").value);
+    const amount = Number($("adminGiveAmount").value);
+    if(!user || !amount) return toast("Введите ник и сумму");
+    
+    const snap = await get(userRef(user));
+    if(!snap.exists()) return toast("Пользователь не найден");
+    
+    await update(userRef(user), { [action]: amount });
+    toast(`Выдано ${amount}`, true);
+};
+
+// НАВИГАЦИЯ
+document.querySelectorAll("#bottomNav button[data-go]").forEach(b => {
+  b.onclick = () => {
+    const v = b.dataset.go;
+    document.querySelectorAll("#bottomNav button").forEach(x => x.classList.toggle("on", x === b));
+    if (v === "vChats") show("vChats");
+    if (v === "vShop") show("vShop");
+    if (v === "vProfile") openProfile(me.name);
+    if (v === "vAdmin") show("vAdmin");
+  };
+});
+
+$("themeBtn").onclick = () => {
+  const light = document.documentElement.dataset.theme === "light";
+  document.documentElement.dataset.theme = light ? "dark" : "light";
+  localStorage.setItem("theme", light ? "dark" : "light");
+};
+if (localStorage.getItem("theme") === "light") document.documentElement.dataset.theme = "light";
+
+</script>
+</body>
+</html>
